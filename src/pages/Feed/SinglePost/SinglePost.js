@@ -22,13 +22,20 @@ class SinglePost extends Component {
         return res.json();
       })
       .then(resData => {
+        console.log(resData);
+        console.log(resData.post.imageUrl);
+        let img1 = resData.post.imageUrl;
+        let img = img1.slice(6,100);
+        console.log('url as: ',img);
+        
         this.setState({
           title: resData.post.title,
           author: resData.post.creator.name,
-          image: 'http://localhost:8080/' + resData.post.imageUrl,
+          image: 'http://localhost:8080/images/' + img,
           date: new Date(resData.post.createdAt).toLocaleDateString('en-US'),
           content: resData.post.content
         });
+        
       })
       .catch(err => {
         console.log(err);
