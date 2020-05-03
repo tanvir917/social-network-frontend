@@ -8,7 +8,6 @@ import Paginator from '../../components/Paginator/Paginator';
 import Loader from '../../components/Loader/Loader';
 import ErrorHandler from '../../components/ErrorHandler/ErrorHandler';
 import './Feed.css';
-import post from '../../components/Feed/Post/Post';
 
 
 class Feed extends Component {
@@ -148,14 +147,28 @@ class Feed extends Component {
       editLoading: true
     });
     const formData = new FormData();
-    formData.append('title', postData.title);
-    formData.append('content', postData.content);
     formData.append('image', postData.image);
-
-    let graphqlQuery = {
-      query: `
+    if (this.state.editPost) {
+      formData.append('oldPath', this.state.editPost.imagePath); 
+    }
+    fetch('http://localhost:8080/post-image', {
+      method: 'PUT',
+      headers: {
+        Authorization: 'Bearer ' + this.props.token
+      },
+      body: formData
+    }).then(res => res.json())
+    .then(fileResData => {
+      const imageUrl = fileResData.filePath;
+      console.log(imageUrl);
+      let img = imageUrl.slice(7,100);
+      let img1 = 'images/' + img
+      let graphqlQuery = {
+        query: `
         mutation {
-          createPost(postInput: {title: "${postData.title}", content: "${postData.content}", imageUrl:"some url"}){
+          createPost(postInput: {title: "${postData.title}", content: "${
+          postData.content
+        }", imageUrl: "${img1}"}) {
             _id
             title
             content
@@ -167,15 +180,16 @@ class Feed extends Component {
           }
         }
       `
-    }
+      };
 
-    fetch('http://localhost:8080/graphql', {
-      method: 'POST',
-      body: JSON.stringify(graphqlQuery),
-      headers: {
-        Authorization: 'Bearer ' + this.props.token,
-        'Content-Type': 'application/json'
-      }
+      return fetch('http://localhost:8080/graphql', {
+        method: 'POST',
+        body: JSON.stringify(graphqlQuery),
+        headers: {
+          Authorization: 'Bearer ' + this.props.token,
+          'Content-Type': 'application/json'
+        }
+      });
     })
       .then(res => {
         return res.json();
@@ -195,7 +209,8 @@ class Feed extends Component {
           title: resData.data.createPost.title,
           content: resData.data.createPost.content,
           creator: resData.data.createPost.creator,
-          createdAt: resData.data.createPost.createdAt
+          createdAt: resData.data.createPost.createdAt,
+          imagePath: resData.data.createPost.imageUrl
         };
         this.setState(prevState => {
           let updatedPosts = [...prevState.posts];
