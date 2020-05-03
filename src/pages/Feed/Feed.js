@@ -93,12 +93,16 @@ class Feed extends Component {
         this.setState({
           posts: resData.data.posts.posts.map(post => {
             //console.log('image url f feed:', post.imageUrl);
-            let img = post.imageUrl.slice(7,100);
-            let img1 = 'images/' + img
+            /*let img1;
+            if(!post.imageUrl) {
+              let img = post.imageUrl.slice(7,100);
+              img1 = 'images/' + img
+            }*/
+            
             //console.log('url as feed: ',img1);
             return { 
               ...post,
-              imagePath: img1
+              imagePath: post.imageUrl
             }
           }),
           totalPosts: resData.data.posts.totalPosts,
@@ -157,12 +161,16 @@ class Feed extends Component {
         Authorization: 'Bearer ' + this.props.token
       },
       body: formData
-    }).then(res => res.json())
+    })
+    .then(res => res.json())
     .then(fileResData => {
       const imageUrl = fileResData.filePath;
-      console.log(imageUrl);
-      let img = imageUrl.slice(7,100);
-      let img1 = 'images/' + img
+      //console.log(imageUrl);
+      let img1;
+      if(!imageUrl === 'undefined') {
+        let img = imageUrl.slice(7,100);
+        img1 = 'images/' + img
+      }
       let graphqlQuery = {
         query: `
         mutation {
@@ -181,6 +189,27 @@ class Feed extends Component {
         }
       `
       };
+
+      if (this.state.editPost) {
+        graphqlQuery = {
+          query: `
+          mutation {
+            updatePost(id: "${this.state.editPost._id}",postInput: {title: "${postData.title}", content: "${
+            postData.content
+          }", imageUrl: "${img1}"}) {
+              _id
+              title
+              content
+              imageUrl
+              creator {
+                name
+              }
+              createdAt
+            }
+          }
+        `
+        };
+      }
 
       return fetch('http://localhost:8080/graphql', {
         method: 'POST',
@@ -203,14 +232,18 @@ class Feed extends Component {
         if (resData.errors) {
           throw new Error('User login failed.');
         } 
+        let resDataField = 'createPost';
+        if (this.state.editPost) {
+          resDataField = 'updatePost';
+        }
         console.log(resData);
         const post = {
-          _id: resData.data.createPost._id,
-          title: resData.data.createPost.title,
-          content: resData.data.createPost.content,
-          creator: resData.data.createPost.creator,
-          createdAt: resData.data.createPost.createdAt,
-          imagePath: resData.data.createPost.imageUrl
+          _id: resData.data[resDataField]._id,
+          title: resData.data[resDataField].title,
+          content: resData.data[resDataField].content,
+          creator: resData.data[resDataField].creator,
+          createdAt: resData.data[resDataField].createdAt,
+          imagePath: resData.data[resDataField].imageUrl
         };
         this.setState(prevState => {
           let updatedPosts = [...prevState.posts];
