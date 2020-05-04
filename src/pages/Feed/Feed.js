@@ -165,12 +165,13 @@ class Feed extends Component {
     .then(res => res.json())
     .then(fileResData => {
       const imageUrl = fileResData.filePath;
-      //console.log(imageUrl);
+      console.log(imageUrl);
       let img1;
-      if(!imageUrl === 'undefined') {
+      if(imageUrl !== 'undefined') {
         let img = imageUrl.slice(7,100);
-        img1 = 'images/' + img
+        img1 = 'images/' + img;
       }
+      console.log(img1);
       let graphqlQuery = {
         query: `
         mutation {
@@ -281,19 +282,28 @@ class Feed extends Component {
 
   deletePostHandler = postId => {
     this.setState({ postsLoading: true });
-    fetch('http://localhost:8080/feed/post/' + postId, {
-      method: 'DELETE',
+    const graphqlQuery = {
+      query: `
+        mutation {
+          deletePost(id: "${postId}")
+        } 
+      `
+    }
+    fetch('http://localhost:8080/graphql', {
+      method: 'POST',
       headers: {
-        Authorization: 'Bearer ' + this.props.token
-      }
+        Authorization: 'Bearer ' + this.props.token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(graphqlQuery)
     })
       .then(res => {
-        if (res.status !== 200 && res.status !== 201) {
-          throw new Error('Deleting a post failed!');
-        }
         return res.json();
       })
       .then(resData => {
+        if (resData.errors) {
+          throw new Error('Deleting the post failed.')
+        }
         console.log(resData);
         this.loadPosts();
         /*this.setState(prevState => {
